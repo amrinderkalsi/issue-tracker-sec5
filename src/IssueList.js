@@ -12,27 +12,60 @@ class IssueList extends Component {
   }
 
   componentDidMount() {
-    fetch('api/issues')
+    fetch('/graphql', { 
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: `query Query {
+          issueList {
+            completionDate
+            created
+            effort
+            id
+            owner
+            status
+            title
+          }
+        }`
+      })
+    })
       .then(res => res.json())
-      .then(data => {
-        console.log(data);
-        data.records.forEach(issue => {
+      .then(body => {
+        console.log(body);
+        body.data.issueList.forEach(issue => {
           issue.created = new Date(issue.created);
           if (issue.completionDate) {
             issue.completionDate = new Date(issue.completionDate);
           }
         });
-        this.setState({ issues: data.records });
+        this.setState({ issues: body.data.issueList });
       });
   }
 
   createIssue = (issue) => {
-
-    
-
-    issue.id = this.state.issues.length + 1;
-    const newIssueArray = [...this.state.issues, issue];
-    this.setState({ issues: newIssueArray});
+    fetch('/api/issues', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(issue)
+    }).then(res => {
+      if (res.ok) {
+        res.json().then(data => {
+          console.log(data)
+          data.created = new Date(data.created);
+          if (data.completionDate) {
+            data.completionDate = new Date(data.completionDate);
+          }
+          const newIssueArray = [...this.state.issues, data];
+          this.setState({ issues: newIssueArray});
+        })
+      } else {
+        res.json().catch(err => {console.log(err)});
+      }
+    }).catch(error => console.log(error));
   }
  
     render() { 
